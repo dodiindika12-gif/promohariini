@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Promo Hari Ini</title>
+<style>
+  :root {
+    --bg: #0e1216;
+    --panel: #1a2028;
+    --line: #2a3038;
+    --text: #e8eaed;
+    --muted: #9aa3ad;
+    --accent: #f5c518;
+    --diskon: #0f6e56;  --diskon-text: #d9f5ea;
+    --voucher: #534ab7; --voucher-text: #eeedfe;
+    --gimmick: #993c1d; --gimmick-text: #faece7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    overflow: hidden;
+  }
+  .screen { display: none; height: 100vh; }
+  .screen.active { display: flex; }
+
+  /* ---------- Layar pilih outlet ---------- */
+  #setup {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    text-align: center;
+    padding: 24px;
+  }
+  #setup h1 { font-size: clamp(24px, 3.5vw, 44px); letter-spacing: 2px; color: var(--accent); }
+  #setup p  { color: var(--muted); font-size: clamp(14px, 1.4vw, 18px); }
+  #outletSelect {
+    font-size: clamp(16px, 1.8vw, 24px);
+    padding: 14px 20px;
+    min-width: min(420px, 80vw);
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  #startBtn {
+    font-size: clamp(16px, 1.8vw, 24px);
+    padding: 14px 48px;
+    background: var(--accent);
+    color: #1a1400;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  #startBtn:disabled { opacity: .4; cursor: default; }
+  #setupStatus { color: var(--muted); font-size: clamp(12px, 1.2vw, 16px); min-height: 1.4em; }
+
+  /* ---------- Layar signage ---------- */
+  #board { flex-direction: column; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.4vh 2.5vw;
+    border-bottom: 1px solid var(--line);
+    flex: 0 0 auto;
+  }
+  header .title {
+    color: var(--accent);
+    font-size: clamp(20px, 3vw, 52px);
+    font-weight: 700;
+    letter-spacing: .12em;
+  }
+  header .meta { text-align: right; line-height: 1.35; }
+  header .meta .date  { font-size: clamp(13px, 1.6vw, 26px); }
+  header .meta .sub   { color: var(--muted); font-size: clamp(11px, 1.2vw, 20px); }
+
+  main { flex: 1 1 auto; position: relative; overflow: hidden; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.6vw;
+    padding: 2.4vh 2.5vw;
+    opacity: 0;
+    transition: opacity .8s ease;
+    pointer-events: none;
+  }
+  .slide.visible { opacity: 1; }
+  .slide.count-1 { grid-template-columns: minmax(0, 1fr); padding-left: 26vw; padding-right: 26vw; }
+  .slide.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-left: 14vw; padding-right: 14vw; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 1.6vh;
+    padding: 2vh 1.4vw;
+    min-width: 0;
+  }
+  .card .brand {
+    font-size: clamp(20px, 2.6vw, 46px);
+    font-weight: 700;
+    letter-spacing: .04em;
+    overflow-wrap: anywhere;
+  }
+  .card .badge {
+    font-size: clamp(11px, 1.1vw, 20px);
+    letter-spacing: .1em;
+    padding: .5em 1.6em;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge.diskon  { background: var(--diskon);  color: var(--diskon-text); }
+  .badge.voucher { background: var(--voucher); color: var(--voucher-text); }
+  .badge.gimmick { background: var(--gimmick); color: var(--gimmick-text); }
+  .badge.lainnya { background: #3a424c; color: var(--text); }
+
+  .card .value {
+    color: var(--accent);
+    font-weight: 700;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .card .value.percent { font-size: clamp(40px, 6.5vw, 130px); }
+  .card .value.text    { font-size: clamp(16px, 2vw, 36px); padding: 0 .4em; }
+
+  .card .scope   { font-size: clamp(13px, 1.4vw, 24px); }
+  .card .period  { color: var(--muted); font-size: clamp(11px, 1.1vw, 19px); }
+
+  footer {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: center;
+    gap: .7vw;
+    padding: 1.2vh 0 1.8vh;
+  }
+  .dot {
+    width: clamp(8px, .8vw, 14px);
+    height: clamp(8px, .8vw, 14px);
+    border-radius: 50%;
+    background: #3a424c;
+    transition: background .3s;
+  }
+  .dot.on { background: var(--accent); }
+
+  #emptyState {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2vh;
+    text-align: center;
+    padding: 24px;
+  }
+  #emptyState .big  { font-size: clamp(22px, 3vw, 48px); font-weight: 600; }
+  #emptyState .small{ color: var(--muted); font-size: clamp(14px, 1.5vw, 24px); }
+
+  #gearBtn {
+    position: fixed;
+    top: 10px; left: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    opacity: 0;
+    font-size: 20px;
+    cursor: pointer;
+    transition: opacity .3s;
+    z-index: 10;
+  }
+  body.show-cursor #gearBtn { opacity: .6; }
+  body:not(.show-cursor) { cursor: none; }
+</style>
+</head>
+<body>
+
+<button id="gearBtn" title="Ganti outlet">&#9881; Ganti outlet</button>
+
+<section id="setup" class="screen active">
+  <h1>PROMO HARI INI</h1>
+  <p>Pilih outlet untuk TV ini. Pilihan tersimpan otomatis di perangkat.</p>
+  <select id="outletSelect"></select>
+  <button id="startBtn" disabled>Tampilkan Signage</button>
+  <div id="setupStatus">Memuat daftar outlet&hellip;</div>
+</section>
+
+<section id="board" class="screen">
+  <header>
+    <div class="title">PROMO HARI INI</div>
+    <div class="meta">
+      <div class="date" id="dateLine"></div>
+      <div class="sub"><span id="outletLine"></span> &middot; <span id="clockLine"></span> WITA</div>
+    </div>
+  </header>
+  <main id="slidesHost">
+    <div id="emptyState">
+      <div class="big">Belum ada promo untuk hari ini</div>
+      <div class="small">Nantikan penawaran menarik berikutnya di Beauty Kendari</div>
+    </div>
+  </main>
+  <footer id="dots"></footer>
+</section>
+
+<script>
+(function () {
+  'use strict';
+
+  var API_URL = '/api/promos';
+  var SLIDE_MS = 10000;
+  var PROMOS_PER_SLIDE = 3;
+  var REFRESH_HOURS = [8, 12, 18];      // jadwal tarik data, WITA
+  var TZ = 'Asia/Makassar';             // WITA
+  var STORAGE_KEY = 'phi_outlet_v1';
+
+  var state = {
+    raw: null,
+    outlet: null,          // {kode, nama} atau {kode:'ALL', nama:'Semua Outlet'}
+    slides: [],
+    slideIndex: 0,
+    slideTimer: null,
+    lastSlotKey: null,
+    fetchFailed: false
+  };
+
+  /* ---------- Util waktu (WITA) ---------- */
+  function witaParts(date) {
+    var fmt = new Intl.DateTimeFormat('id-ID', {
+      timeZone: TZ,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    });
+    var parts = {};
+    fmt.formatToParts(date || new Date()).forEach(function (p) { parts[p.type] = p.value; });
+    return parts;
+  }
+
+  function fmtDateLong(date) {
+    return new Intl.DateTimeFormat('id-ID', {
+      timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    }).format(date || new Date());
+  }
+
+  function fmtDateShort(date) {
+    return new Intl.DateTimeFormat('id-ID', {
+      timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric'
+    }).format(date);
+  }
+
+  // Tanggal akhir yang jatuh tepat pukul 00:00 WITA dianggap batas eksklusif
+  // (mis. selesai 19 Juli 00:00 WITA berarti berlaku s/d 18 Juli).
+  function fmtPeriod(startIso, endIso) {
+    if (!startIso || !endIso) return '';
+    var start = new Date(startIso);
+    var end = new Date(endIso);
+    var ep = witaParts(end);
+    if (ep.hour === '00' && ep.minute === '00') {
+      end = new Date(end.getTime() - 60000);
+    }
+    return fmtDateShort(start) + ' \u2013 ' + fmtDateShort(end);
+  }
+
+  /* ---------- Data ---------- */
+  function fetchPromos() {
+    return fetch(API_URL, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        state.raw = data;
+        state.fetchFailed = false;
+        return data;
+      })
+      .catch(function () {
+        state.fetchFailed = true;
+        return null; // pertahankan data lama jika ada
+      });
+  }
+
+  function allOutletsFromData() {
+    var map = {};
+    var promos = (state.raw && state.raw.promos) || [];
+    promos.forEach(function (p) {
+      (p.outlets || []).forEach(function (o) {
+        if (o && o.kode) map[o.kode] = o.nama || o.kode;
+      });
+    });
+    return Object.keys(map).sort().map(function (k) { return { kode: k, nama: map[k] }; });
+  }
+
+  function promoAppliesTo(promo, outletKode) {
+    if (outletKode === 'ALL') return true;
+    var outs = promo.outlets || [];
+    if (outs.length === 0) return true; // tanpa daftar outlet = berlaku semua
+    return outs.some(function (o) {
+      if (!o) return false;
+      var kode = String(o.kode || '').toUpperCase();
+      var nama = String(o.nama || '').toLowerCase();
+      return kode === String(outletKode).toUpperCase() ||
+             kode === 'ALL' || nama.indexOf('semua') !== -1;
+    });
+  }
+
+  /* ---------- Kartu promo ---------- */
+  function extractPercent(mekanisme) {
+    var m = /([0-9]+(?:[.,][0-9]+)?)\s*%/.exec(mekanisme || '');
+    return m ? m[1].replace('.', ',') + '%' : null;
+  }
+
+  function scopeLabel(scope) {
+    if (!scope) return '';
+    if (String(scope).toLowerCase() === 'all_product') return 'All Produk';
+    return 'Selected Item';
+  }
+
+  function badgeClass(jenis) {
+    var j = String(jenis || '').toLowerCase();
+    if (j === 'diskon' || j === 'voucher' || j === 'gimmick') return j;
+    return 'lainnya';
+  }
+
+  function buildCard(promo) {
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    var brand = document.createElement('div');
+    brand.className = 'brand';
+    brand.textContent = promo.brand || '';
+
+    var badge = document.createElement('div');
+    var jcls = badgeClass(promo.jenis_promo);
+    badge.className = 'badge ' + jcls;
+    badge.textContent = String(promo.jenis_promo || 'Promo').toUpperCase();
+
+    var value = document.createElement('div');
+    var pct = String(promo.jenis_promo || '').toLowerCase() === 'diskon'
+      ? extractPercent(promo.mekanisme) : null;
+    if (pct) {
+      value.className = 'value percent';
+      value.textContent = pct;
+    } else {
+      value.className = 'value text';
+      value.textContent = promo.mekanisme || promo.nama_promo || '';
+    }
+
+    var scope = document.createElement('div');
+    scope.className = 'scope';
+    scope.textContent = scopeLabel(promo.product_scope);
+
+    var period = document.createElement('div');
+    period.className = 'period';
+    period.textContent = fmtPeriod(promo.periode_mulai, promo.periode_selesai);
+
+    card.appendChild(brand);
+    card.appendChild(badge);
+    card.appendChild(value);
+    card.appendChild(scope);
+    card.appendChild(period);
+    return card;
+  }
+
+  /* ---------- Slide ---------- */
+  function rebuildSlides() {
+    var host = document.getElementById('slidesHost');
+    var empty = document.getElementById('emptyState');
+    host.querySelectorAll('.slide').forEach(function (el) { el.remove(); });
+
+    var promos = ((state.raw && state.raw.promos) || [])
+      .filter(function (p) { return promoAppliesTo(p, state.outlet.kode); });
+
+    state.slides = [];
+    for (var i = 0; i < promos.length; i += PROMOS_PER_SLIDE) {
+      state.slides.push(promos.slice(i, i + PROMOS_PER_SLIDE));
+    }
+
+    empty.style.display = state.slides.length ? 'none' : 'flex';
+
+    state.slides.forEach(function (group) {
+      var slide = document.createElement('div');
+      slide.className = 'slide count-' + Math.min(group.length, 3);
+      group.forEach(function (p) { slide.appendChild(buildCard(p)); });
+      host.appendChild(slide);
+    });
+
+    var dots = document.getElementById('dots');
+    dots.innerHTML = '';
+    if (state.slides.length > 1) {
+      state.slides.forEach(function () {
+        var d = document.createElement('div');
+        d.className = 'dot';
+        dots.appendChild(d);
+      });
+    }
+
+    state.slideIndex = 0;
+    showSlide(0);
+    restartRotation();
+  }
+
+  function showSlide(idx) {
+    var slides = document.querySelectorAll('#slidesHost .slide');
+    var dots = document.querySelectorAll('#dots .dot');
+    slides.forEach(function (el, i) { el.classList.toggle('visible', i === idx); });
+    dots.forEach(function (el, i) { el.classList.toggle('on', i === idx); });
+  }
+
+  function restartRotation() {
+    if (state.slideTimer) clearInterval(state.slideTimer);
+    if (state.slides.length <= 1) return;
+    state.slideTimer = setInterval(function () {
+      state.slideIndex = (state.slideIndex + 1) % state.slides.length;
+      showSlide(state.slideIndex);
+    }, SLIDE_MS);
+  }
+
+  /* ---------- Jadwal refresh (08.00 / 12.00 / 18.00 WITA + ganti hari) ---------- */
+  function currentSlotKey() {
+    var p = witaParts();
+    var hour = parseInt(p.hour, 10);
+    var slot = 'awal';
+    REFRESH_HOURS.forEach(function (h) { if (hour >= h) slot = 'j' + h; });
+    return p.year + '-' + p.month + '-' + p.day + '/' + slot;
+  }
+
+  function scheduleTick() {
+    var key = currentSlotKey();
+    if (key !== state.lastSlotKey || state.fetchFailed) {
+      state.lastSlotKey = key;
+      fetchPromos().then(function () { if (state.outlet) rebuildSlides(); });
+    }
+  }
+
+  /* ---------- Header jam & tanggal ---------- */
+  function tickClock() {
+    var p = witaParts();
+    document.getElementById('clockLine').textContent = p.hour + ':' + p.minute;
+    document.getElementById('dateLine').textContent = fmtDateLong();
+  }
+
+  /* ---------- Layar setup ---------- */
+  function populateOutletSelect() {
+    var sel = document.getElementById('outletSelect');
+    var status = document.getElementById('setupStatus');
+    var btn = document.getElementById('startBtn');
+    sel.innerHTML = '';
+
+    var optAll = document.createElement('option');
+    optAll.value = 'ALL';
+    optAll.textContent = 'Semua Outlet';
+    sel.appendChild(optAll);
+
+    allOutletsFromData().forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.kode;
+      opt.textContent = o.nama + ' (' + o.kode + ')';
+      sel.appendChild(opt);
+    });
+
+    if (state.fetchFailed) {
+      status.textContent = 'Gagal memuat data. Periksa koneksi \u2014 mencoba ulang otomatis.';
+      setTimeout(loadForSetup, 15000);
+    } else {
+      status.textContent = '';
+    }
+    btn.disabled = false;
+  }
+
+  function loadForSetup() {
+    fetchPromos().then(populateOutletSelect);
+  }
+
+  function startBoard() {
+    var sel = document.getElementById('outletSelect');
+    var kode = sel.value;
+    var nama = sel.options[sel.selectedIndex].textContent;
+    state.outlet = { kode: kode, nama: kode === 'ALL' ? 'Semua Outlet' : nama };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.outlet)); } catch (e) {}
+    enterBoard();
+  }
+
+  function enterBoard() {
+    document.getElementById('setup').classList.remove('active');
+    document.getElementById('board').classList.add('active');
+    document.getElementById('outletLine').textContent = state.outlet.nama;
+    state.lastSlotKey = currentSlotKey();
+    rebuildSlides();
+  }
+
+  function backToSetup() {
+    document.getElementById('board').classList.remove('active');
+    document.getElementById('setup').classList.add('active');
+    if (state.slideTimer) clearInterval(state.slideTimer);
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    state.outlet = null;
+    loadForSetup();
+  }
+
+  /* ---------- Kursor & tombol ganti outlet ---------- */
+  var cursorTimer = null;
+  document.addEventListener('mousemove', function () {
+    document.body.classList.add('show-cursor');
+    if (cursorTimer) clearTimeout(cursorTimer);
+    cursorTimer = setTimeout(function () {
+      document.body.classList.remove('show-cursor');
+    }, 4000);
+  });
+
+  document.getElementById('startBtn').addEventListener('click', startBoard);
+  document.getElementById('gearBtn').addEventListener('click', backToSetup);
+
+  /* ---------- Boot ---------- */
+  tickClock();
+  setInterval(tickClock, 1000);
+  setInterval(scheduleTick, 30000);
+
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {}
+
+  if (saved && saved.kode) {
+    state.outlet = saved;
+    fetchPromos().then(enterBoard);
+  } else {
+    loadForSetup();
+  }
+})();
+</script>
+</body>
+</html>
